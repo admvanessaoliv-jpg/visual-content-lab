@@ -16,6 +16,7 @@ export const DESIGN_TYPES: { id: DesignType; label: string; description: string 
 ];
 
 export const DIRECTIONS: { id: Direction; label: string; description: string; needsImage: boolean }[] = [
+  { id: 'P', label: 'Editorial premium', description: 'Foto em degradê, serifa com capitular, granulado e texto editorial.', needsImage: false },
   { id: 'A', label: 'Minimalista tipográfico', description: 'Fundo neutro, tipografia como elemento principal.', needsImage: false },
   { id: 'B', label: 'Editorial fotográfico', description: 'Fotografia + serifa, grid de revista.', needsImage: true },
   { id: 'C', label: 'Fundo sólido com sombras', description: 'Cor da marca com cartões e sombras suaves.', needsImage: false },

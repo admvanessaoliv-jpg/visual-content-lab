@@ -81,21 +81,7 @@ export function makeBrandKit(p: Partial<BrandKit> = {}): BrandKit {
     handle: '@minhamarca',
     logoAssetId: null,
     logoLightAssetId: null,
-    colors: {
-      primary: '#1A1A1A',
-      secondary: '#B8603E',
-      accent: '#D9C3A5',
-      background: '#F4F1EC',
-      surface: '#FFFFFF',
-      text: '#161616',
-      muted: '#7A746C',
-    },
-    palette: ['#1A1A1A', '#B8603E', '#D9C3A5', '#F4F1EC', '#FFFFFF', '#7A746C'],
-    headingFont: { family: 'Playfair Display', weight: 500 },
-    bodyFont: { family: 'Inter Tight', weight: 400 },
-    accentFont: { family: 'Inter Tight', weight: 600 },
-    headingUppercase: false,
-    headingLetterSpacing: -0.02,
+    ...BRAND_PRESETS[0].kit,
     photoStyle: 'Luz natural, tons quentes',
     photoNotes: '',
     photoFilter: 'none',
@@ -109,6 +95,48 @@ export function makeBrandKit(p: Partial<BrandKit> = {}): BrandKit {
     ...p,
   };
 }
+
+type PresetKit = Pick<BrandKit, 'colors' | 'palette' | 'headingFont' | 'bodyFont' | 'accentFont' | 'scriptFont' | 'useDropCap' | 'headingUppercase' | 'headingLetterSpacing'>;
+
+/** Presets de identidade prontos para começar com qualidade editorial */
+export const BRAND_PRESETS: { id: string; name: string; description: string; kit: PresetKit }[] = [
+  {
+    id: 'verde-editorial', name: 'Verde editorial', description: 'Verde profundo, off-white e destaque verde-limão. Serifa condensada + grotesca.',
+    kit: {
+      colors: { primary: '#2B3830', secondary: '#45564B', accent: '#C9F27E', background: '#EDEDE9', surface: '#F7F7F4', text: '#27312B', muted: '#6E7871' },
+      palette: ['#2B3830', '#45564B', '#C9F27E', '#EDEDE9', '#27312B', '#F7F7F4'],
+      headingFont: { family: 'Instrument Serif', weight: 400 }, bodyFont: { family: 'Inter Tight', weight: 400 }, accentFont: { family: 'Inter Tight', weight: 500 },
+      scriptFont: { family: 'Pinyon Script', weight: 400 }, useDropCap: true, headingUppercase: false, headingLetterSpacing: -0.035,
+    },
+  },
+  {
+    id: 'areia-noite', name: 'Areia & noite', description: 'Azul-noite, areia e dourado suave. Elegante e silencioso.',
+    kit: {
+      colors: { primary: '#1E2433', secondary: '#3A4257', accent: '#E3C48F', background: '#F1ECE4', surface: '#FBF8F3', text: '#1F2330', muted: '#7B7769' },
+      palette: ['#1E2433', '#3A4257', '#E3C48F', '#F1ECE4', '#1F2330', '#FBF8F3'],
+      headingFont: { family: 'Instrument Serif', weight: 400 }, bodyFont: { family: 'Inter Tight', weight: 400 }, accentFont: { family: 'Inter Tight', weight: 500 },
+      scriptFont: { family: 'Great Vibes', weight: 400 }, useDropCap: true, headingUppercase: false, headingLetterSpacing: -0.03,
+    },
+  },
+  {
+    id: 'vinho-rosa', name: 'Vinho & blush', description: 'Vinho profundo, blush e rosa vivo no destaque.',
+    kit: {
+      colors: { primary: '#3B1F26', secondary: '#5C3540', accent: '#F4A7B9', background: '#F3ECEA', surface: '#FBF7F6', text: '#2E1B20', muted: '#80676D' },
+      palette: ['#3B1F26', '#5C3540', '#F4A7B9', '#F3ECEA', '#2E1B20', '#FBF7F6'],
+      headingFont: { family: 'Bodoni Moda', weight: 400 }, bodyFont: { family: 'Inter Tight', weight: 400 }, accentFont: { family: 'Inter Tight', weight: 500 },
+      scriptFont: { family: 'Pinyon Script', weight: 400 }, useDropCap: true, headingUppercase: false, headingLetterSpacing: -0.03,
+    },
+  },
+  {
+    id: 'grafite', name: 'Grafite minimal', description: 'Preto, cinza quente e branco. Sem capitular, puro grid.',
+    kit: {
+      colors: { primary: '#141414', secondary: '#3A3A38', accent: '#E8E4DA', background: '#F2F1ED', surface: '#FFFFFF', text: '#161616', muted: '#7A7872' },
+      palette: ['#141414', '#3A3A38', '#E8E4DA', '#F2F1ED', '#161616', '#FFFFFF'],
+      headingFont: { family: 'Fraunces', weight: 400 }, bodyFont: { family: 'Inter Tight', weight: 400 }, accentFont: { family: 'Inter Tight', weight: 500 },
+      scriptFont: { family: 'Pinyon Script', weight: 400 }, useDropCap: false, headingUppercase: false, headingLetterSpacing: -0.03,
+    },
+  },
+];
 
 export const PHOTO_STYLES = [
   'Luz natural, tons quentes', 'Alto contraste, preto e branco', 'Editorial de moda', 'Lifestyle espontâneo',

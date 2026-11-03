@@ -131,3 +131,8 @@ import '@fontsource/jetbrains-mono/700.css';
 import '@fontsource/space-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import '@fontsource/space-mono/400-italic.css';
+import '@fontsource/pinyon-script/400.css';
+import '@fontsource/great-vibes/400.css';
+import '@fontsource/italianno/400.css';
+import '@fontsource/parisienne/400.css';
+import '@fontsource/allura/400.css';

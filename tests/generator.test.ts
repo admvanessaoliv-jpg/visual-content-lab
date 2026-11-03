@@ -35,7 +35,7 @@ describe('gerador', async () => {
         for (const el of page.elements) {
           expect(Number.isFinite(el.x) && Number.isFinite(el.y) && el.width > 0).toBe(true);
         }
-        const texts = page.elements.filter((e) => e.type === 'text');
+        const texts = page.elements.filter((e) => e.type === 'text' && e.name !== 'Textura de fundo');
         // título dentro da página
         const W = FORMATS[format].width;
         for (const t of texts) expect(t.x + t.width).toBeLessThanOrEqual(W + 1);
@@ -54,12 +54,38 @@ describe('gerador', async () => {
     }
   });
 
+  it('texto rico: marcações, capitular e ajuste à caixa', async () => {
+    const { layoutRich, stripMarkup } = await import('../src/lib/richText');
+    const style = { fontFamily: 'X', fontWeight: 400, italic: false, fontSize: 40, lineHeight: 1, letterSpacing: 0, align: 'left' as const, uppercase: false, fill: '#000',
+      highlightColor: '#0f0', highlightFamily: 'Y', highlightItalic: true, highlightWeight: 400, boldWeight: 700, dropCap: { family: 'Z', scale: 2 }, paragraphSpacing: 1 };
+    const L = layoutRich('Uma frase com ==destaque== e **negrito**\n\nNovo parágrafo', style, 500);
+    expect(L.segs.some((s) => s.color === '#0f0' && s.font.includes('italic') && s.text === 'destaque')).toBe(true);
+    expect(L.segs.some((s) => s.text === 'negrito' && s.font.startsWith('700'))).toBe(true);
+    expect(L.segs[0].text).toBe('U');
+    expect(L.segs[0].font).toContain('"Z"');
+    expect(stripMarkup('a ==b== **c**')).toBe('a b c');
+  });
+
+  it('carrossel premium segue a estrutura das referências', () => {
+    const slides = [
+      { title: 'Uma mulher que ora ==se posiciona==', body: 'Subtítulo', imageId: 'img' },
+      { title: '', body: 'Parágrafo um.\n\nParágrafo dois.', imageId: null },
+      { title: '1. Ela intercede.', body: 'Texto.\n\n***Ênfase.***', imageId: null },
+      { title: 'Salve', body: 'Compartilhe', imageId: null },
+    ];
+    const pages = generateCarousel({ brand, format: 'portrait', direction: 'P', slides, handle: '@x', cta: 'Siga', nav: 'Passe', lastIsCta: true, seed: 1 });
+    expect(pages[0].elements.some((e) => e.type === 'text' && e.rich && e.dropCap)).toBe(true);
+    expect(pages[0].background.grain).toBeGreaterThan(0);
+    expect(pages[1].elements.some((e) => e.name === 'Navegação · pílula')).toBe(true);
+    expect(pages[3].elements.some((e) => e.name === 'Navegação · pílula')).toBe(false);
+  });
+
   it('reaplica Brand Kit por papel de cor e tipografia', () => {
     const [v] = generateDesign({ brand, format: 'portrait', type: 'typographic', direction: 'A', images: [], content: { title: 'Olá' }, seed: 3 });
     const other = makeBrandKit({ colors: { ...brand.colors, text: '#FF0000', background: '#00FF00' }, headingFont: { family: 'Anton', weight: 400 } });
     const [p] = applyBrandToPages([v.page], other);
     const heading = p.elements.find((e) => e.type === 'text' && e.role === 'heading');
     expect(heading && heading.type === 'text' && heading.fontFamily).toBe('Anton');
-    expect(p.background.color).toBe('#00FF00');
+    expect(p.background.color).toBe(other.colors[p.background.colorRole!]);
   });
 });

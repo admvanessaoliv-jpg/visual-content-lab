@@ -2,13 +2,16 @@ import Konva from 'konva';
 import type { DesignElement, Gradient, ImageElement, ImageFilters, Page, Shadow, ShapeElement, TextElement } from '../types';
 import { rgba } from './color';
 import { fontStack } from './fonts';
+import { drawRich, layoutRich, type RichStyle } from './richText';
+import { grainTile } from './grain';
+import type { PageBackground } from '../types';
 
 /**
  * Tradução ÚNICA do modelo de dados para atributos Konva.
  * Usada tanto pelo editor (react-konva) quanto pelo renderizador
  * de exportação — garante que o PNG exportado seja idêntico à tela.
  */
-export type NodeKind = 'Text' | 'Image' | 'Rect' | 'Ellipse' | 'Line' | 'Arrow';
+export type NodeKind = 'Text' | 'Image' | 'Rect' | 'Ellipse' | 'Line' | 'Arrow' | 'Shape';
 
 export interface NodeSpec {
   kind: NodeKind;
@@ -122,6 +125,7 @@ export function elementSpec(el: DesignElement, img?: HTMLImageElement | null): N
 
   switch (el.type) {
     case 'text':
+      if (el.rich || el.dropCap) return richSpec(el, base);
       return { kind: 'Text', attrs: { ...base, ...textAttrs(el) }, needsCache: false };
 
     case 'image': {
@@ -173,6 +177,18 @@ export function elementSpec(el: DesignElement, img?: HTMLImageElement | null): N
     }
 
     case 'line': {
+      if (el.arrowEnd && el.arrowStyle === 'open') {
+        const h = Math.max(6, el.strokeWidth * 3.2 + 4);
+        return {
+          kind: 'Line',
+          attrs: {
+            ...base, points: [0, 0, el.width, 0, el.width - h, -h, el.width, 0, el.width - h, h],
+            stroke: el.stroke, strokeWidth: el.strokeWidth, lineCap: 'round', lineJoin: 'round',
+            dash: el.dash.length ? el.dash : undefined, hitStrokeWidth: Math.max(24, el.strokeWidth + 16),
+          },
+          needsCache: false,
+        };
+      }
       return {
         kind: el.arrowEnd ? 'Arrow' : 'Line',
         attrs: {
@@ -206,9 +222,90 @@ function shiftGradient(g: ReturnType<typeof gradientAttrs>, w: number, h: number
 export function collectFonts(pages: Page[]) {
   const out = new Map<string, { family: string; weight: number; italic: boolean }>();
   for (const p of pages) for (const el of p.elements) {
-    if (el.type === 'text') out.set(`${el.fontFamily}|${el.fontWeight}|${el.italic}`, { family: el.fontFamily, weight: el.fontWeight, italic: el.italic });
+    if (el.type !== 'text') continue;
+    const add = (family: string, weight: number, italic: boolean) => out.set(`${family}|${weight}|${italic}`, { family, weight, italic });
+    add(el.fontFamily, el.fontWeight, el.italic);
+    if (el.rich) {
+      add(el.fontFamily, el.boldWeight ?? 700, el.italic);
+      add(el.fontFamily, el.fontWeight, true);
+      add(el.fontFamily, el.boldWeight ?? 700, true);
+      add(el.highlightFamily ?? el.fontFamily, el.highlightWeight ?? el.fontWeight, el.highlightItalic ?? true);
+    }
+    if (el.dropCap) add(el.dropCap.family, 400, false);
   }
   return [...out.values()];
 }
 
 export function isImageEl(el: DesignElement): el is ImageElement { return el.type === 'image'; }
+
+export function richStyleOf(el: TextElement): RichStyle {
+  return {
+    fontFamily: el.fontFamily,
+    fontWeight: el.fontWeight,
+    italic: el.italic,
+    fontSize: el.fontSize,
+    lineHeight: el.lineHeight,
+    letterSpacing: el.letterSpacing,
+    align: el.align,
+    uppercase: el.uppercase,
+    fill: el.fill,
+    highlightColor: el.highlightColor ?? el.fill,
+    highlightFamily: el.highlightFamily ?? el.fontFamily,
+    highlightItalic: el.highlightItalic ?? true,
+    highlightWeight: el.highlightWeight ?? el.fontWeight,
+    boldWeight: el.boldWeight ?? 700,
+    dropCap: el.dropCap ?? null,
+    paragraphSpacing: el.paragraphSpacing ?? 0,
+  };
+}
+
+function richSpec(el: TextElement, base: Record<string, any>): NodeSpec {
+  const layout = layoutRich(el.text, richStyleOf(el), el.width);
+  const height = el.autoHeight ? layout.height : el.height;
+  const dy = el.autoHeight ? 0 : el.verticalAlign === 'middle' ? (el.height - layout.height) / 2 : el.verticalAlign === 'bottom' ? el.height - layout.height : 0;
+  return {
+    kind: 'Shape',
+    attrs: {
+      ...base,
+      width: el.width,
+      height,
+      sceneFunc: (kctx: any, shape: any) => {
+        const ctx: CanvasRenderingContext2D = kctx._context;
+        ctx.save();
+        if (shape.hasShadow && shape.hasShadow() && el.shadow?.enabled) {
+          const sc = shape.getAbsoluteScale().x * (kctx.canvas?.getPixelRatio?.() ?? 1);
+          const { r, g, b } = hexRgb(el.shadow.color);
+          ctx.shadowColor = `rgba(${r},${g},${b},${el.shadow.opacity})`;
+          ctx.shadowBlur = el.shadow.blur * sc;
+          ctx.shadowOffsetX = el.shadow.offsetX * sc;
+          ctx.shadowOffsetY = el.shadow.offsetY * sc;
+        }
+        if (dy) ctx.translate(0, dy);
+        drawRich(ctx, layout, el.letterSpacing);
+        ctx.restore();
+      },
+      hitFunc: (kctx: any, shape: any) => {
+        kctx.beginPath();
+        kctx.rect(0, 0, el.width, height);
+        kctx.closePath();
+        kctx.fillStrokeShape(shape);
+      },
+    },
+    needsCache: false,
+  };
+}
+
+function hexRgb(hex: string) {
+  const n = parseInt(hex.replace('#', '').slice(0, 6), 16) || 0;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/** Camada de granulado, desenhada acima de todos os elementos */
+export function grainSpec(bg: PageBackground, W: number, H: number): NodeSpec | null {
+  if (!bg.grain || bg.grain <= 0) return null;
+  return {
+    kind: 'Rect',
+    attrs: { name: 'grain', x: 0, y: 0, width: W, height: H, fillPatternImage: grainTile(), fillPatternRepeat: 'repeat', opacity: Math.min(1, bg.grain), listening: false },
+    needsCache: false,
+  };
+}

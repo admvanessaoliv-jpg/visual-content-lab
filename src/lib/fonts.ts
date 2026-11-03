@@ -2,7 +2,7 @@ import './fontImports';
 
 export interface FontDef {
   family: string;
-  category: 'serif' | 'sans' | 'display' | 'mono' | 'custom';
+  category: 'serif' | 'sans' | 'display' | 'script' | 'mono' | 'custom';
   weights: number[];
   italic: boolean;
 }
@@ -37,6 +37,11 @@ export const FONT_CATALOG: FontDef[] = [
   { family: 'Anton', category: 'display', weights: [400], italic: false },
   { family: 'Archivo Black', category: 'display', weights: [400], italic: false },
   { family: 'Abril Fatface', category: 'display', weights: [400], italic: false },
+  { family: 'Pinyon Script', category: 'script', weights: [400], italic: false },
+  { family: 'Great Vibes', category: 'script', weights: [400], italic: false },
+  { family: 'Italianno', category: 'script', weights: [400], italic: false },
+  { family: 'Parisienne', category: 'script', weights: [400], italic: false },
+  { family: 'Allura', category: 'script', weights: [400], italic: false },
   { family: 'JetBrains Mono', category: 'mono', weights: [400, 500, 700], italic: false },
   { family: 'Space Mono', category: 'mono', weights: [400, 700], italic: true },
 ];

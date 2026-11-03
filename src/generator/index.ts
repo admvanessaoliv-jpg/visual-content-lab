@@ -120,12 +120,14 @@ export interface CarouselInput {
   slides: CarouselSlideInput[];
   handle: string;
   cta: string;
+  nav?: string;
   lastIsCta: boolean;
   seed?: number;
 }
 
 /** Repertório de layouts por direção: capa, conteúdo (com e sem foto) */
-const CAROUSEL_POOLS: Record<Direction, { cover: string[]; content: string[]; contentNoImage: string[]; alternate: boolean }> = {
+const CAROUSEL_POOLS: Record<Direction, { cover: string[]; content: string[]; contentNoImage: string[]; alternate: boolean; cta?: string; coverNoImage?: string[] }> = {
+  P: { cover: ['premium-cover-photo'], coverNoImage: ['premium-cover-type'], content: ['premium-text-photo'], contentNoImage: ['premium-text'], alternate: false, cta: 'premium-cta' },
   A: { cover: ['typo-hero', 'typo-center'], content: ['typo-number', 'typo-hero', 'quote', 'list'], contentNoImage: ['typo-number', 'typo-hero', 'quote', 'list'], alternate: false },
   B: { cover: ['editorial-masthead', 'editorial-top'], content: ['editorial-top', 'split', 'frame-inset', 'photo-bottom'], contentNoImage: ['quote', 'list', 'typo-hero'], alternate: false },
   C: { cover: ['solid-bold', 'solid-stack'], content: ['solid-card', 'solid-stack', 'solid-card', 'list'], contentNoImage: ['solid-card', 'solid-stack', 'quote', 'list'], alternate: true },
@@ -153,11 +155,11 @@ export function generateCarousel(input: CarouselInput): Page[] {
     const isLast = index === total - 1;
     const role: SlideInfo['role'] = index === 0 ? 'cover' : isLast && input.lastIsCta ? 'cta' : 'content';
     let layoutId: string;
-    if (role === 'cover') layoutId = pick(pool.cover);
-    else if (role === 'cta') layoutId = 'cta';
+    if (role === 'cover') layoutId = pick(!s.imageId && pool.coverNoImage ? pool.coverNoImage : pool.cover);
+    else if (role === 'cta') layoutId = pool.cta ?? 'cta';
     else {
       const ids = s.imageId ? pool.content : pool.contentNoImage;
-      const hasList = s.body.split('\n').filter((l) => l.trim()).length >= 3;
+      const hasList = input.direction !== 'P' && s.body.split('\n').filter((l) => l.trim()).length >= 3;
       // listas detectadas usam layout de lista quando a direção permite
       layoutId = hasList && ids.includes('list') ? 'list' : pick(ids.filter((x) => x !== 'list' || hasList), prev);
       contentIdx++;
@@ -171,6 +173,7 @@ export function generateCarousel(input: CarouselInput): Page[] {
       body: role === 'cover' ? undefined : s.body || undefined,
       subtitle: role === 'cover' ? s.body || undefined : undefined,
       handle: input.handle,
+      nav: input.nav,
       cta: role === 'cta' ? input.cta : undefined,
     };
     const ctx = buildCtx(base, variant, seed + index * 97, s.imageId, content, { index, total, role });
@@ -181,7 +184,7 @@ export function generateCarousel(input: CarouselInput): Page[] {
 /** Re-gera um único slide com outro layout mantendo o conteúdo */
 export function layoutsForDirection(direction: Direction) {
   const p = CAROUSEL_POOLS[direction];
-  return [...new Set([...p.cover, ...p.content, ...p.contentNoImage, 'cta'])].map((id) => layoutById(id)!);
+  return [...new Set([...p.cover, ...(p.coverNoImage ?? []), ...p.content, ...p.contentNoImage, p.cta ?? 'cta'])].map((id) => layoutById(id)!);
 }
 
 // ======================================================== Brand Kit
@@ -234,4 +237,21 @@ export function brandLogos(brand: BrandKit, assets: AssetMeta[]) {
     logoAsset: assets.find((a) => a.id === brand.logoAssetId) ?? null,
     logoLightAsset: assets.find((a) => a.id === brand.logoLightAssetId) ?? null,
   };
+}
+
+/** Carrega todas as faces que o gerador pode usar antes de medir textos */
+export async function prepareBrandFonts(brand: BrandKit) {
+  const { ensureFonts } = await import('../lib/fonts');
+  const { clearRichCache } = await import('../lib/richText');
+  const specs: { family: string; weight: number; italic?: boolean }[] = [];
+  const add = (family: string, weights: number[], italic = true) => weights.forEach((w) => {
+    const ww = nearestWeight(family, w);
+    specs.push({ family, weight: ww }, ...(italic ? [{ family, weight: ww, italic: true }] : []));
+  });
+  add(brand.headingFont.family, [brand.headingFont.weight, 700]);
+  add(brand.bodyFont.family, [brand.bodyFont.weight, 400, 500, 700, 800]);
+  add(brand.accentFont.family, [brand.accentFont.weight, 400, 500, 600], false);
+  if (brand.scriptFont) specs.push({ family: brand.scriptFont.family, weight: 400 });
+  await ensureFonts(specs);
+  clearRichCache();
 }

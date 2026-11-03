@@ -17,7 +17,7 @@ export interface Format {
 export type DesignType = 'static' | 'reels' | 'carousel' | 'editorial' | 'photo' | 'typographic';
 
 /** Direções visuais (A–F) */
-export type Direction = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+export type Direction = 'P' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 export type TextRole = 'kicker' | 'heading' | 'subheading' | 'body' | 'caption' | 'cta' | 'number';
 export type ColorRole = 'primary' | 'secondary' | 'accent' | 'background' | 'surface' | 'text' | 'muted';
@@ -74,6 +74,21 @@ export interface TextElement extends BaseElement {
   role?: TextRole;
   /** Altura automática conforme o conteúdo */
   autoHeight: boolean;
+  /**
+   * Texto rico: interpreta marcações no próprio texto
+   * ==destaque==  **negrito**  *itálico*
+   */
+  rich?: boolean;
+  highlightColor?: string;
+  highlightColorRole?: ColorRole;
+  highlightFamily?: string;
+  highlightItalic?: boolean;
+  highlightWeight?: number;
+  boldWeight?: number;
+  /** Letra capitular decorativa (primeira letra em outra fonte e escala) */
+  dropCap?: { family: string; scale: number; color?: string } | null;
+  /** Espaço extra entre parágrafos, em em */
+  paragraphSpacing?: number;
 }
 
 export interface ImageFilters {
@@ -118,6 +133,8 @@ export interface LineElement extends BaseElement {
   strokeWidth: number;
   dash: number[];
   arrowEnd: boolean;
+  /** 'open' = seta vazada (chevron), 'filled' = ponta sólida */
+  arrowStyle?: 'filled' | 'open';
   lineCap: 'butt' | 'round';
 }
 
@@ -134,6 +151,8 @@ export interface PageBackground {
   imageFilters: ImageFilters;
   overlayColor: string;
   overlayOpacity: number;
+  /** Textura granulada sobre a página (0–1) */
+  grain?: number;
 }
 
 export interface Page {
@@ -190,6 +209,9 @@ export interface BrandKit {
   headingFont: BrandFont;
   bodyFont: BrandFont;
   accentFont: BrandFont;
+  /** Fonte caligráfica para letras capitulares */
+  scriptFont?: BrandFont;
+  useDropCap?: boolean;
   headingUppercase: boolean;
   headingLetterSpacing: number;
   photoStyle: string;

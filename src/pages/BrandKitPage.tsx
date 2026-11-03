@@ -6,7 +6,7 @@ import { ColorField, Dropzone, Field, Segmented, Slider, Toggle, confirmDialog }
 import { FontSelect, WeightSelect } from '../components/FontSelect';
 import { AssetImage } from '../components/AssetImage';
 import { ACCEPTED_FONTS, ACCEPTED_IMAGES } from '../lib/assets';
-import { COMPOSITION_STYLES, PHOTO_STYLES } from '../lib/defaults';
+import { BRAND_PRESETS, COMPOSITION_STYLES, PHOTO_STYLES } from '../lib/defaults';
 import { ensureFont, nearestWeight, registerCustomFont } from '../lib/fonts';
 import { extractPalette } from '../lib/extractPalette';
 import { assetsDB } from '../lib/db';
@@ -77,6 +77,20 @@ export function BrandKitPage() {
       <div className="bk-layout">
         <div>
           <section className="card bk-section">
+            <h2 className="section-title">Ponto de partida</h2>
+            <p className="section-sub">Aplique uma identidade editorial pronta (cores + tipografia) e ajuste a partir dela. Nome, logotipo e referências são mantidos.</p>
+            <div className="opt-grid">
+              {BRAND_PRESETS.map((p) => (
+                <button key={p.id} className="opt" onClick={() => { update({ ...p.kit }); toast(`Preset “${p.name}” aplicado`); }} data-testid={`preset-${p.id}`}>
+                  <span className="row" style={{ gap: 0, marginBottom: 6 }}>{[p.kit.colors.primary, p.kit.colors.accent, p.kit.colors.background, p.kit.colors.text].map((c, i) => <span key={i} style={{ width: 22, height: 22, background: c, borderRadius: '50%', marginLeft: i ? -6 : 0, border: '2px solid #fff' }} />)}</span>
+                  <b style={{ fontFamily: `"${p.kit.headingFont.family}"`, fontSize: 19, fontWeight: 400 }}>{p.name}</b>
+                  <span>{p.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="card bk-section">
             <h2 className="section-title">Marca</h2>
             <p className="section-sub">Nome e assinatura usados nas composições (masthead, rodapés, CTA).</p>
             <div className="grid-2">
@@ -133,6 +147,17 @@ export function BrandKitPage() {
               </div>
               <FontRow label="Textos" font={draft.bodyFont} onChange={(f) => update({ bodyFont: f })} sample="Texto de apoio legível, com boa entrelinha e ritmo confortável para leitura em telas." size={16} />
               <FontRow label="Chamadas e detalhes" font={draft.accentFont} onChange={(f) => update({ accentFont: f })} sample="CHAMADA · 01 / 07 · @PERFIL" size={14} />
+              <div className="grid-2">
+                <Field label="Fonte caligráfica (letra capitular)">
+                  <FontSelect value={draft.scriptFont?.family ?? 'Pinyon Script'} onChange={(family) => update({ scriptFont: { family, weight: 400 } })} />
+                </Field>
+                <Field label="Capitular nas capas">
+                  <Toggle checked={draft.useDropCap !== false} onChange={(v) => update({ useDropCap: v })} label="Primeira letra do título em fonte caligráfica" />
+                </Field>
+              </div>
+              <div className="font-sample" style={{ fontFamily: `"${draft.headingFont.family}"`, fontSize: 40, lineHeight: 1, letterSpacing: `${draft.headingLetterSpacing}em`, background: draft.colors.primary, color: draft.colors.background }}>
+                {draft.useDropCap !== false && <span style={{ fontFamily: `"${draft.scriptFont?.family ?? 'Pinyon Script'}"`, fontSize: 68 }}>U</span>}ma frase com <i style={{ color: draft.colors.accent }}>destaque</i>
+              </div>
               <CustomFonts draft={draft} update={update} />
             </div>
           </section>

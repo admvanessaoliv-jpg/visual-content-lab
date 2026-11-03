@@ -21,6 +21,8 @@ export interface GenContent {
   body?: string;
   cta?: string;
   handle?: string;
+  /** Texto do botão de navegação (ex.: PASSE) */
+  nav?: string;
 }
 
 export interface SlideInfo { index: number; total: number; role: 'cover' | 'content' | 'cta' }

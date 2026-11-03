@@ -11,7 +11,7 @@ let custom: WidthFn | null = null;
 /** Permite injetar um medidor (testes em Node) */
 export function setMeasurer(fn: WidthFn | null) { custom = fn; }
 
-function measureWidth(text: string, font: string) {
+export function measureWidth(text: string, font: string) {
   if (custom) return custom(text, font);
   if (!ctx) ctx = document.createElement('canvas').getContext('2d');
   ctx!.font = font;

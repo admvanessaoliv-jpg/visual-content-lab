@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { BrandKit } from '../types';
-import { brandLogos, generateWithLayout } from '../generator';
-import { ensureFonts } from '../lib/fonts';
+import { brandLogos, generateWithLayout, prepareBrandFonts } from '../generator';
 import { renderThumbnail } from '../lib/renderer';
 import { useApp } from '../store/appStore';
 import { Loader } from '../components/ui';
@@ -13,18 +12,16 @@ export function BrandPreview({ brand }: { brand: BrandKit }) {
   useEffect(() => {
     let alive = true;
     const t = window.setTimeout(async () => {
-      await ensureFonts([brand.headingFont, brand.bodyFont, brand.accentFont].map((f) => ({ family: f.family, weight: f.weight })));
+      await prepareBrandFonts(brand);
       const refImage = brand.references[0]?.assetId ?? null;
       const base = {
         brand, ...brandLogos(brand, assets), format: 'portrait' as const, type: 'static' as const, images: refImage ? [refImage] : [], variant: 0,
-        content: { kicker: 'Brand Kit', title: brand.name || 'Sua marca', body: 'Uma prévia gerada com as suas cores, fontes e estilo.', handle: brand.handle },
+        content: { kicker: 'Brand Kit', title: `${brand.name || 'Sua marca'}, com ==elegância== editorial`, subtitle: 'Prévia gerada com o seu Brand Kit', body: 'Uma prévia gerada com as suas **cores**, fontes e estilo.\n\n***Cada peça é editável, camada por camada.***', handle: brand.handle },
       };
       const pages = [
-        generateWithLayout({ ...base, direction: 'A', layoutId: 'typo-hero', image: null }),
-        generateWithLayout({ ...base, direction: 'C', layoutId: 'solid-card', image: null }),
-        refImage
-          ? generateWithLayout({ ...base, direction: 'E', layoutId: 'frame-inset', image: refImage })
-          : generateWithLayout({ ...base, direction: 'F', layoutId: 'geo-circle', image: null, variant: 1 }),
+        generateWithLayout({ ...base, direction: 'P', layoutId: refImage ? 'premium-cover-photo' : 'premium-cover-type', image: refImage }),
+        generateWithLayout({ ...base, direction: 'P', layoutId: 'premium-text', image: null, slide: { index: 1, total: 3, role: 'content' } }),
+        generateWithLayout({ ...base, direction: 'P', layoutId: 'premium-cta', image: null, slide: { index: 2, total: 3, role: 'cta' } }),
       ];
       const out = await Promise.all(pages.map((p) => renderThumbnail(p, 'portrait', 300)));
       if (alive) setUrls(out);

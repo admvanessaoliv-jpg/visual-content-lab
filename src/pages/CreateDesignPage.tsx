@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RefreshCw, Save, Sparkles, PencilLine, ImageOff } from 'lucide-react';
 import type { DesignType, Direction, FormatId } from '../types';
 import { useApp } from '../store/appStore';
+import { stripMarkup } from '../lib/richText';
 import { DESIGN_TYPES, DIRECTIONS, FORMATS } from '../lib/formats';
-import { brandLogos, generateDesign, type Variation } from '../generator';
-import { ensureFonts } from '../lib/fonts';
+import { brandLogos, generateDesign, prepareBrandFonts, type Variation } from '../generator';
 import { renderThumbnail } from '../lib/renderer';
 import { newProject, withThumbnails } from '../lib/projects';
 import { Field, Loader } from '../components/ui';
@@ -44,7 +44,7 @@ export function CreateDesignPage() {
   const brand = useApp((s) => s.activeBrand());
   const [type, setType] = useState<DesignType>((params.get('type') as DesignType) || 'static');
   const [format, setFormat] = useState<FormatId>(settings.defaultFormat);
-  const [direction, setDirection] = useState<Direction>('A');
+  const [direction, setDirection] = useState<Direction>('P');
   const [kicker, setKicker] = useState('');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -57,7 +57,7 @@ export function CreateDesignPage() {
 
   useEffect(() => setHandle(brand.handle), [brand.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (type === 'reels') setFormat('story'); if (type === 'carousel') nav('/carousel'); }, [type, nav]);
-  useEffect(() => { if ((type === 'photo' || type === 'editorial') && !['B', 'D', 'E'].includes(direction)) setDirection(type === 'photo' ? 'D' : 'B'); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if ((type === 'photo' || type === 'editorial') && !['P', 'B', 'D', 'E'].includes(direction)) setDirection(type === 'photo' ? 'D' : 'B'); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const needsImage = DIRECTIONS.find((d) => d.id === direction)!.needsImage || type === 'photo' || type === 'editorial';
 
@@ -65,7 +65,7 @@ export function CreateDesignPage() {
     if (!title.trim()) { toast('Escreva ao menos o título da peça', 'error'); return; }
     setBusy(true);
     try {
-      await ensureFonts([brand.headingFont, brand.bodyFont, brand.accentFont].flatMap((f) => [{ family: f.family, weight: f.weight }, { family: f.family, weight: 600 }, { family: f.family, weight: f.weight, italic: true }]));
+      await prepareBrandFonts(brand);
       const vars = generateDesign({
         brand, ...brandLogos(brand, assets), format, type, direction, images, seed: newSeed,
         content: { kicker: kicker.trim() || undefined, title: title.trim(), subtitle: subtitle.trim() || undefined, body: body.trim() || undefined, handle: handle.trim() || undefined },
@@ -81,7 +81,7 @@ export function CreateDesignPage() {
 
   const save = async (v: Variation, open: boolean) => {
     const proj = await withThumbnails(newProject({
-      name: title.trim().slice(0, 60) || 'Novo design', kind: 'design', designType: type, format, direction,
+      name: stripMarkup(title.trim()).slice(0, 60) || 'Novo design', kind: 'design', designType: type, format, direction,
       pages: [{ ...v.page, name: 'Página 1' }], brandKitId: brand.id,
     }));
     await createProject(proj);
@@ -122,7 +122,7 @@ export function CreateDesignPage() {
             </select>
           </Field>
           <hr className="divider" style={{ margin: 0 }} />
-          <Field label="Título *"><textarea className="textarea" rows={2} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A mensagem principal da peça" data-testid="input-title" /></Field>
+          <Field label="Título *" hint="Use ==trecho== para destacar (itálico colorido), **negrito** e *itálico*."><textarea className="textarea" rows={3} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Uma mulher que aprende a orar pela sua casa, aprende a ==se posicionar diante de Deus==" data-testid="input-title" /></Field>
           <div className="grid-2">
             <Field label="Chamada (opcional)"><input className="input" value={kicker} onChange={(e) => setKicker(e.target.value)} placeholder="Ex.: Guia rápido" /></Field>
             <Field label="@ / assinatura"><input className="input" value={handle} onChange={(e) => setHandle(e.target.value)} /></Field>

@@ -6,6 +6,7 @@ import { useEditor } from '../store/editorStore';
 import { useApp } from '../store/appStore';
 import { FORMATS, reelsSafeZone } from '../lib/formats';
 import { backgroundSpecs } from '../lib/renderer';
+import { grainSpec } from '../lib/konvaAttrs';
 import { useAssetImage } from '../lib/assets';
 import { ElementNode } from './ElementNode';
 import { TextEditOverlay } from './TextEditOverlay';
@@ -271,6 +272,7 @@ export function CanvasStage() {
                 onDragEnd={onDragEnd}
               />
             ))}
+            {(() => { const g = grainSpec(page.background, W, H); return g ? <Rect {...g.attrs} /> : null; })()}
             {page.elements.filter((el) => el.type === 'image' && !el.assetId && !el.hidden).map((el) => (
               <Text key={`ph-${el.id}`} listening={false} x={el.x} y={el.y + el.height / 2 - 24} width={el.width} align="center" text={'Imagem\nclique duas vezes para escolher'} fontSize={Math.max(14, Math.min(28, el.width / 14))} fill="#8F8A80" fontFamily="Inter Tight" lineHeight={1.4} />
             ))}

@@ -1,7 +1,7 @@
 import { allFonts, ensureFont } from '../lib/fonts';
 import { useEffect } from 'react';
 
-const GROUPS: Record<string, string> = { serif: 'Serifadas', sans: 'Sem serifa', display: 'Display', mono: 'Monoespaçadas', custom: 'Fontes da marca' };
+const GROUPS: Record<string, string> = { serif: 'Serifadas', sans: 'Sem serifa', display: 'Display', script: 'Script / caligráficas', mono: 'Monoespaçadas', custom: 'Fontes da marca' };
 
 export function FontSelect({ value, onChange, size }: { value: string; onChange: (family: string) => void; size?: 'sm' }) {
   const fonts = allFonts();

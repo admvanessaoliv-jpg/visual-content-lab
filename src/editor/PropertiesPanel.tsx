@@ -147,6 +147,29 @@ function TextProps({ el }: { el: TextElement }) {
         )}
       </div>
       <div className="prop-group">
+        <div className="panel-title">Texto rico</div>
+        <Toggle checked={!!el.rich} onChange={(v) => up({ rich: v, highlightColor: el.highlightColor ?? brand.colors.accent, highlightFamily: el.highlightFamily ?? el.fontFamily, highlightItalic: el.highlightItalic ?? true })} label="Interpretar marcações" />
+        {el.rich && (
+          <>
+            <p className="muted small" style={{ margin: 0 }}><code>==destaque==</code> · <code>**negrito**</code> · <code>*itálico*</code> · linha em branco = novo parágrafo</p>
+            <Field label="Cor do destaque"><ColorField size="sm" value={el.highlightColor ?? el.fill} swatches={swatches} onChange={(c) => up({ highlightColor: c, highlightColorRole: undefined })} /></Field>
+            <Field label="Fonte do destaque"><FontSelect size="sm" value={el.highlightFamily ?? el.fontFamily} onChange={(f) => up({ highlightFamily: f, highlightWeight: nearestWeight(f, el.highlightWeight ?? el.fontWeight) })} /></Field>
+            <div className="prop-row">
+              <Toggle checked={el.highlightItalic ?? true} onChange={(v) => up({ highlightItalic: v })} label="Destaque itálico" />
+              <WeightSelect size="sm" family={el.fontFamily} value={el.boldWeight ?? 700} onChange={(w) => up({ boldWeight: w })} />
+            </div>
+            <Field label="Espaço entre parágrafos"><Slider value={el.paragraphSpacing ?? 0} min={0} max={2} step={0.05} onChange={(v) => up({ paragraphSpacing: v })} suffix="em" /></Field>
+          </>
+        )}
+        <Toggle checked={!!el.dropCap} onChange={(v) => up({ dropCap: v ? { family: brand.scriptFont?.family ?? 'Pinyon Script', scale: 1.7 } : null })} label="Letra capitular decorativa" />
+        {el.dropCap && (
+          <>
+            <FontSelect size="sm" value={el.dropCap.family} onChange={(f) => up({ dropCap: { ...el.dropCap!, family: f } })} />
+            <Field label="Escala da capitular"><Slider value={el.dropCap.scale} min={1} max={3} step={0.05} onChange={(v) => up({ dropCap: { ...el.dropCap!, scale: v } })} suffix="×" /></Field>
+          </>
+        )}
+      </div>
+      <div className="prop-group">
         <div className="panel-title">Cor</div>
         <ColorField size="sm" value={el.fill} swatches={swatches} onChange={(c) => up({ fill: c, colorRole: undefined })} />
         <Field label="Contorno">
@@ -252,6 +275,7 @@ function LineProps({ el }: { el: LineElement }) {
       <Segmented full value={el.dash.length ? 'dash' : 'solid'} onChange={(v) => up({ dash: v === 'dash' ? [el.strokeWidth * 3, el.strokeWidth * 2] : [] })} options={[{ value: 'solid', label: 'Contínua' }, { value: 'dash', label: 'Tracejada' }]} />
       <div className="row">
         <Toggle checked={el.arrowEnd} onChange={(v) => up({ arrowEnd: v })} label="Seta" />
+        {el.arrowEnd && <Toggle checked={el.arrowStyle === 'open'} onChange={(v) => up({ arrowStyle: v ? 'open' : 'filled' })} label="Vazada" />}
         <Toggle checked={el.lineCap === 'round'} onChange={(v) => up({ lineCap: v ? 'round' : 'butt' })} label="Pontas arredondadas" />
       </div>
     </div>
@@ -316,6 +340,10 @@ function PagePanel() {
             <Field label="Desfoque"><Slider value={bg.imageFilters.blur} min={0} max={30} onChange={(v) => up({ imageFilters: { ...bg.imageFilters, blur: v } })} /></Field>
           </>
         )}
+      </div>
+      <div className="prop-group">
+        <div className="panel-title">Textura</div>
+        <Field label="Granulado (filme)"><Slider value={bg.grain ?? 0} min={0} max={1} step={0.01} onChange={(v) => up({ grain: v })} /></Field>
       </div>
       <div className="prop-group">
         <div className="panel-title">Película (overlay)</div>

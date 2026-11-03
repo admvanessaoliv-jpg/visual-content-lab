@@ -16,6 +16,7 @@ import { Dropzone, Segmented } from '../components/ui';
 import { useEditorUI, type LeftTab } from './uiStore';
 import { LAYOUTS } from '../generator/layouts';
 import { generateFromLayout } from './regenerate';
+import { stripMarkup } from '../lib/richText';
 
 const TABS: { id: LeftTab; label: string; icon: typeof Type }[] = [
   { id: 'add', label: 'Inserir', icon: Plus },
@@ -247,7 +248,7 @@ function LayersTab() {
               onClick={(e) => select([el.id], e.shiftKey)}
             >
               <span className="ltype"><Icon /></span>
-              <span className="lname" title={el.type === 'text' ? el.text : el.name}>{el.type === 'text' ? `${el.name}: ${el.text}` : el.name}</span>
+              <span className="lname" title={el.type === 'text' ? el.text : el.name}>{el.type === 'text' ? `${el.name}: ${stripMarkup(el.text)}` : el.name}</span>
               <button className="icon-btn sm" title={el.locked ? 'Desbloquear' : 'Bloquear'} onClick={(e) => { e.stopPropagation(); updateElement(el.id, { locked: !el.locked }); }}>{el.locked ? <Lock /> : <Unlock style={{ opacity: 0.35 }} />}</button>
               <button className="icon-btn sm" title={el.hidden ? 'Mostrar' : 'Ocultar'} onClick={(e) => { e.stopPropagation(); updateElement(el.id, { hidden: !el.hidden }); }}>{el.hidden ? <EyeOff /> : <Eye style={{ opacity: 0.5 }} />}</button>
             </div>

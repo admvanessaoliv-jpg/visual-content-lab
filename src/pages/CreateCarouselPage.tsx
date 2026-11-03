@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ClipboardPaste, Images, PencilLine, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import type { Direction, FormatId, Page } from '../types';
 import { useApp } from '../store/appStore';
+import { stripMarkup } from '../lib/richText';
 import { FORMATS, DIRECTIONS } from '../lib/formats';
-import { brandLogos, generateCarousel, type CarouselSlideInput } from '../generator';
-import { ensureFonts } from '../lib/fonts';
+import { brandLogos, generateCarousel, prepareBrandFonts, type CarouselSlideInput } from '../generator';
 import { renderThumbnail } from '../lib/renderer';
 import { newProject, withThumbnails } from '../lib/projects';
 import { MAX_SLIDES, MIN_SLIDES } from '../store/editorStore';
@@ -17,11 +17,11 @@ import { DirectionPicker, FormatPicker } from './CreateDesignPage';
 const emptySlide = (): CarouselSlideInput => ({ title: '', body: '', kicker: '', imageId: null });
 
 const STARTER: CarouselSlideInput[] = [
-  { title: '5 princípios para um feed com identidade', body: 'Um guia rápido para criar consistência visual', kicker: 'Guia', imageId: null },
-  { title: 'Defina uma paleta curta', body: 'Três a cinco cores com papéis claros: fundo, texto, destaque.', kicker: '', imageId: null },
-  { title: 'Use no máximo duas famílias tipográficas', body: 'Uma para títulos, outra para textos. O contraste cria hierarquia.', kicker: '', imageId: null },
-  { title: 'Repita elementos, varie a composição', body: 'Margens, contadores e assinatura fixos; layouts que se alternam.', kicker: '', imageId: null },
-  { title: 'Gostou? Salve para consultar depois', body: 'Compartilhe com quem está construindo uma marca.', kicker: '', imageId: null },
+  { title: 'Uma mulher que aprende a orar pela sua casa, aprende a ==se posicionar diante de Deus==', body: 'Aprenda a guerrear em oração', kicker: '', imageId: null },
+  { title: '', body: 'A oração por sua casa não começa quando surge um problema, uma crise familiar ou uma situação que você não consegue resolver.\n\nEla começa quando você entende que sua família precisa de mais do que seus esforços humanos: precisa ser conduzida pelos princípios de Deus.\n\n**📌 Salve este post para voltar aqui sempre que precisar.**', kicker: '', imageId: null },
+  { title: '1. Ela aprende a interceder.', body: 'Em 1 Samuel 1, encontramos Ana, uma mulher que derramou sua alma diante do Senhor em meio a uma profunda aflição.\n\nAprenda com Ana: você não precisa carregar sozinha aquilo que pode apresentar ao Pai.\n\n***Ore pelos seus filhos, pelo seu casamento, pela sua família e pelas situações que precisam da direção de Deus.***', kicker: '', imageId: null },
+  { title: '2. Ela se posiciona pela Palavra.', body: 'Em Josué 24:15, Josué declarou diante do povo:\n"Eu e a minha casa serviremos ao Senhor."\n\n***Uma mulher que deseja ver sua casa firmada no Senhor precisa começar vivendo os princípios que deseja ensinar.***', kicker: '', imageId: null },
+  { title: 'Salve para ==voltar aqui== sempre que precisar', body: 'Compartilhe com uma mulher que precisa ler isso hoje.', kicker: '', imageId: null },
 ];
 
 /** Converte um roteiro em slides: blocos separados por linha em branco ou "---" */
@@ -42,7 +42,8 @@ export function CreateCarouselPage() {
   const { settings, brandKits, activeBrandKitId, setActiveBrandKit, assets, createProject, toast } = useApp();
   const brand = useApp((s) => s.activeBrand());
   const [format, setFormat] = useState<FormatId>(settings.defaultFormat === 'story' ? 'portrait' : settings.defaultFormat);
-  const [direction, setDirection] = useState<Direction>('A');
+  const [direction, setDirection] = useState<Direction>('P');
+  const [navText, setNavText] = useState('Passe');
   const [slides, setSlides] = useState<CarouselSlideInput[]>(STARTER);
   const [handle, setHandle] = useState(brand.handle);
   const [cta, setCta] = useState('Siga para mais conteúdos');
@@ -62,11 +63,12 @@ export function CreateCarouselPage() {
 
   const generate = async () => {
     if (slides.length < MIN_SLIDES) return toast(`O carrossel precisa de ao menos ${MIN_SLIDES} slides`, 'error');
-    if (slides.some((s) => !s.title.trim())) return toast('Todos os slides precisam de um título', 'error');
+    if (!slides[0].title.trim()) return toast('A capa precisa de um título', 'error');
+    if (slides.some((s) => !s.title.trim() && !s.body.trim())) return toast('Há slides vazios — preencha título ou texto', 'error');
     setBusy(true);
     try {
-      await ensureFonts([brand.headingFont, brand.bodyFont, brand.accentFont].flatMap((f) => [{ family: f.family, weight: f.weight }, { family: f.family, weight: 600 }, { family: f.family, weight: f.weight, italic: true }]));
-      const out = generateCarousel({ brand, ...brandLogos(brand, assets), format, direction, slides, handle, cta, lastIsCta, seed: Date.now() });
+      await prepareBrandFonts(brand);
+      const out = generateCarousel({ brand, ...brandLogos(brand, assets), format, direction, slides, handle, cta, nav: navText, lastIsCta, seed: Date.now() });
       setPages(out);
       setThumbs([]);
       const t: string[] = [];
@@ -78,7 +80,7 @@ export function CreateCarouselPage() {
 
   const open = async () => {
     const proj = await withThumbnails(newProject({
-      name: name.trim() || slides[0].title.slice(0, 60) || 'Novo carrossel', kind: 'carousel', designType: 'carousel', format, direction, pages, brandKitId: brand.id,
+      name: name.trim() || stripMarkup(slides[0].title).slice(0, 60) || 'Novo carrossel', kind: 'carousel', designType: 'carousel', format, direction, pages, brandKitId: brand.id,
     }));
     await createProject(proj);
     nav(`/editor/${proj.id}`);
@@ -111,6 +113,7 @@ export function CreateCarouselPage() {
             <Field label="@ / assinatura"><input className="input" value={handle} onChange={(e) => setHandle(e.target.value)} /></Field>
             <Field label="Texto do botão (CTA)"><input className="input" value={cta} onChange={(e) => setCta(e.target.value)} /></Field>
           </div>
+          <Field label="Texto do botão de navegação" hint="Aparece com a seta em todos os slides, exceto o último."><input className="input" value={navText} onChange={(e) => setNavText(e.target.value)} /></Field>
           <Toggle checked={lastIsCta} onChange={setLastIsCta} label="Último slide é de encerramento (CTA)" />
           {dir.needsImage && slides.filter((s) => s.imageId).length === 0 && (
             <p className="small" style={{ margin: 0, color: '#8A6A1F' }}>A direção “{dir.label}” é fotográfica: adicione fotos aos slides. Slides sem foto recebem composição tipográfica coerente.</p>
@@ -139,7 +142,7 @@ export function CreateCarouselPage() {
             <div className="row wrap" style={{ marginBottom: 16 }}>
               <div>
                 <h2 className="section-title">Roteiro dos slides</h2>
-                <p className="section-sub" style={{ margin: 0 }}>{slides.length} de {MAX_SLIDES} slides · mínimo {MIN_SLIDES}. No corpo, uma linha por item cria uma lista.</p>
+                <p className="section-sub" style={{ margin: 0 }}>{slides.length} de {MAX_SLIDES} slides · mínimo {MIN_SLIDES}. Marcações: <code>==destaque==</code>, <code>**negrito**</code>, <code>*itálico*</code>, <code>***negrito itálico***</code>. Linha em branco separa parágrafos.</p>
               </div>
               <div className="spacer" />
               <button className="btn sm" onClick={() => setScriptOpen(true)}><ClipboardPaste /> Colar roteiro</button>
@@ -155,8 +158,8 @@ export function CreateCarouselPage() {
                   </div>
                   <div className="stack" style={{ gap: 8 }}>
                     <span className="tag">{i === 0 ? 'Capa' : i === slides.length - 1 && lastIsCta ? 'Encerramento / CTA' : 'Conteúdo'}</span>
-                    <input className="input" value={s.title} onChange={(e) => setSlide(i, { title: e.target.value })} placeholder="Título do slide" />
-                    <textarea className="textarea" rows={2} value={s.body} onChange={(e) => setSlide(i, { body: e.target.value })} placeholder={i === 0 ? 'Subtítulo da capa (opcional)' : 'Texto do slide (opcional)'} />
+                    <input className="input" value={s.title} onChange={(e) => setSlide(i, { title: e.target.value })} placeholder={i === 0 ? 'Título da capa — use ==trecho== para destacar' : 'Título (opcional) — ex.: 1. Ela aprende a interceder.'} />
+                    <textarea className="textarea" rows={i === 0 ? 2 : 5} value={s.body} onChange={(e) => setSlide(i, { body: e.target.value })} placeholder={i === 0 ? 'Subtítulo da capa (opcional)' : 'Texto do slide (opcional)'} />
                     <div className="row">
                       <input className="input sm" style={{ maxWidth: 220 }} value={s.kicker ?? ''} onChange={(e) => setSlide(i, { kicker: e.target.value })} placeholder="Chamada (opcional)" />
                       <div className="spacer" />

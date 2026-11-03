@@ -4,7 +4,8 @@ import { FORMATS } from './formats';
 import type { FormatId } from '../types';
 import { loadAssetImage } from './assets';
 import { ensureFonts } from './fonts';
-import { collectFonts, coverCrop, elementSpec, filterAttrs, gradientAttrs, type NodeSpec } from './konvaAttrs';
+import { collectFonts, coverCrop, elementSpec, filterAttrs, gradientAttrs, grainSpec, type NodeSpec } from './konvaAttrs';
+import { clearRichCache } from './richText';
 
 export function backgroundSpecs(bg: PageBackground, W: number, H: number, img?: HTMLImageElement | null): NodeSpec[] {
   const specs: NodeSpec[] = [
@@ -64,6 +65,7 @@ async function pageImages(page: Page) {
 export async function renderPage(page: Page, formatId: FormatId, pixelRatio = 1): Promise<HTMLCanvasElement> {
   const { width: W, height: H } = FORMATS[formatId];
   await ensureFonts(collectFonts([page]));
+  clearRichCache();
   const images = await pageImages(page);
 
   const container = document.createElement('div');
@@ -78,6 +80,8 @@ export async function renderPage(page: Page, formatId: FormatId, pixelRatio = 1)
       const img = el.type === 'image' && el.assetId ? images.get(el.assetId) : null;
       layer.add(create(elementSpec(el, img)));
     }
+    const grain = grainSpec(page.background, W, H);
+    if (grain) layer.add(create(grain));
     layer.draw();
     return stage.toCanvas({ pixelRatio });
   } finally {

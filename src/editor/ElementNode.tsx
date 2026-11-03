@@ -1,13 +1,15 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { Arrow, Ellipse, Image as KImage, Line, Rect, Text } from 'react-konva';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Arrow, Ellipse, Image as KImage, Line, Rect, Shape, Text } from 'react-konva';
 import type Konva from 'konva';
 import type { DesignElement } from '../types';
 import { elementSpec } from '../lib/konvaAttrs';
 import { useAssetImage } from '../lib/assets';
-import { ensureFont } from '../lib/fonts';
+import { ensureFonts } from '../lib/fonts';
+import { collectFonts } from '../lib/konvaAttrs';
+import { clearRichCache } from '../lib/richText';
 import { useEditor } from '../store/editorStore';
 
-const COMPONENTS = { Text, Image: KImage, Rect, Ellipse, Line, Arrow } as const;
+const COMPONENTS = { Text, Image: KImage, Rect, Ellipse, Line, Arrow, Shape } as const;
 
 interface Props {
   el: DesignElement;
@@ -25,20 +27,29 @@ interface Props {
 export function ElementNode({ el, hiddenForEditing, onSelect, onDblClick, onDragMove, onDragEnd }: Props) {
   const ref = useRef<Konva.Shape>(null);
   const img = useAssetImage(el.type === 'image' ? el.assetId : null);
+  const [fontTick, setFontTick] = useState(0);
   const spec = elementSpec(el, img);
+  void fontTick;
   const silentUpdate = useEditor((s) => s.silentUpdate);
 
   // fontes: redesenha quando a face real termina de carregar
-  const fontKey = el.type === 'text' ? `${el.fontFamily}|${el.fontWeight}|${el.italic}` : '';
+  const fontKey = el.type === 'text'
+    ? JSON.stringify(collectFonts([{ id: '', name: '', background: null as any, elements: [el] }]))
+    : '';
   useEffect(() => {
     if (el.type !== 'text') return;
     let alive = true;
-    ensureFont(el.fontFamily, el.fontWeight, el.italic).then(() => {
-      const node = ref.current as Konva.Text | null;
+    ensureFonts(JSON.parse(fontKey)).then(() => {
+      const node = ref.current as any;
       if (!alive || !node) return;
-      const fam = node.fontFamily();
-      node.fontFamily(fam + ' ');
-      node.fontFamily(fam);
+      if (node.fontFamily) {
+        const fam = node.fontFamily();
+        node.fontFamily(fam + ' ');
+        node.fontFamily(fam);
+      } else {
+        clearRichCache();
+        setFontTick((t) => t + 1);
+      }
       node.getLayer()?.batchDraw();
       syncHeight();
     });

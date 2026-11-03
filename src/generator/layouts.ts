@@ -1,5 +1,6 @@
 import type { DesignElement, Direction } from '../types';
 import { softShadow } from '../lib/defaults';
+import { PREMIUM_LAYOUTS } from './premium';
 import {
   bottomOf, chrome, circle, darkGradient, kicker, logoEl, photo, rect, rule, slideNumber, solidBg, txt,
   type GenCtx, type LayoutResult,
@@ -435,6 +436,7 @@ const ctaEnd: LayoutDef = {
 };
 
 export const LAYOUTS: LayoutDef[] = [
+  ...PREMIUM_LAYOUTS,
   typoHero, typoCenter, typoNumber, quote, list,
   editorialTop, editorialMasthead, photoBottom, photoCaption, frameInset, splitSide, archPhoto,
   solidCard, solidStack, solidBold, geoCircle, geoGrid, ctaEnd,
